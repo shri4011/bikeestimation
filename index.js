@@ -7,10 +7,13 @@ require("dotenv").config();
 // Create an Express app
 const app = express();
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://192.168.1.3:3000"],
-};
-
-app.use(cors(corsOptions));
+    origin: 'http://localhost:3000', // Allow your frontend's origin
+    methods: ['GET', 'POST'], // Allowed methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+    credentials: true, // If you need to allow cookies/authentication
+  };
+  
+  app.use(cors(corsOptions));
 
 // Middleware to parse JSON
 app.use(express.json());
