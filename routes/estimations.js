@@ -10,8 +10,25 @@ const bikeEstimationSchema = new mongoose.Schema({
   vehicalType: String,
   vehicalComapny: String,
   vehicalModel: String,
-  servicingList: Array,
-  partsList: Array,
+  servicingList: [
+    {
+      serviceType: String,
+      serviceOption: String,
+      price: Number,
+      quantity: Number,
+      total: Number,
+    },
+  ],
+  partsList: [
+    {
+      type: String,
+      company: String,
+      product: String,
+      price: Number,
+      quantity: Number,
+      total: Number,
+    },
+  ],
   billSubtotal: Number,
   payableAmount: Number,
 });
@@ -35,6 +52,38 @@ router.post("/", async (req, res) => {
 
   await bikeEst.save();
   res.send(bikeEst);
+});
+
+// GET paginated list of estimations
+router.post('/getList', async (req, res) => {
+  try {
+    // Get the page and limit from query params, default to page 1 and limit 10 if not provided
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 10;
+    const sortBy = req.body.sortBy || 'vehicalNumber'; // Default sorting by vehicalNumber
+    const order = req.body.order === 'desc' ? -1 : 1;  // Ascending or descending order
+
+    const skip = (page - 1) * limit;
+
+    // Use bikeEstimation (the model) to count documents
+    const totalDocs = await bikeEstimation.countDocuments();
+
+    // Use bikeEstimation (the model) to find documents
+    const estimations = await bikeEstimation.find()
+      .sort({ [sortBy]: order }) // Sorting
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      currentPage: page,
+      totalPages: Math.ceil(totalDocs / limit),
+      totalItems: totalDocs,
+      itemsPerPage: limit,
+      estimations
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
