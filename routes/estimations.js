@@ -91,4 +91,84 @@ router.post("/getList", async (req, res) => {
   }
 });
 
+router.post("/getList", async (req, res) => {
+  try {
+    // Get the page and limit from query params, default to page 1 and limit 10 if not provided
+    const page = parseInt(req.body.page) || 1;
+    const limit = parseInt(req.body.limit) || 10;
+    const sortBy = req.body.sortBy || "vehicalNumber"; // Default sorting by vehicalNumber
+    const order = req.body.order === "desc" ? -1 : 1; // Ascending or descending order
+
+    const skip = (page - 1) * limit;
+
+    // Use bikeEstimation (the model) to count documents
+    const totalDocs = await bikeEstimation.countDocuments();
+
+    // Use bikeEstimation (the model) to find documents
+    const estimations = await bikeEstimation
+      .find()
+      .sort({ [sortBy]: order }) // Sorting
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      currentPage: page,
+      totalPages: Math.ceil(totalDocs / limit),
+      totalItems: totalDocs,
+      itemsPerPage: limit,
+      estimations,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post("/getEstimationDetatils", async (req, res) => {
+  try {
+    // Find the document by _id and update it
+    const updatedBikeEstimation = await bikeEstimation.findByIdAndUpdate(
+      req.body?._id, // The ID from the URL
+      req.body?.data, // The new data to update
+      { new: true, runValidators: true } // Options: new: true returns the updated document
+    );
+
+    if (!updatedBikeEstimation) {
+      return res.status(404).send("Bike estimation not found");
+    }
+
+    res.json(updatedBikeEstimation); // Send the updated document as a response
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.post("/deleteEstimationDetatils", async (req, res) => {
+  try {
+    const _id = req.body?._id;
+    const deleteEstimation = await bikeEstimation.findByIdAndDelete({
+      _id: _id,
+    });
+    if (!deleteEstimation) {
+      return res.status(404).send("Bike estimation not found");
+    }
+    res.send(deleteEstimation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const bikeEstimation2 = await bikeEstimation.findOne({
+      _id: req.params.id,
+    });
+    if (!bikeEstimation2) {
+      return res.status(404).send("Bike estimation not found");
+    }
+    res.json(bikeEstimation2);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
