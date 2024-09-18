@@ -13,7 +13,8 @@ const corsOptions = {
     credentials: true, // If you need to allow cookies/authentication
   };
   
-  app.use(cors(corsOptions));
+  // app.use(cors(corsOptions));
+  app.use(cors());
 
 // Middleware to parse JSON
 app.use(express.json());
