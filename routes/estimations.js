@@ -2,8 +2,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
-const multer = require('multer');
-const bodyParser = require('body-parser');
+const multer = require("multer");
+const bodyParser = require("body-parser");
 
 const partsList = new mongoose.Schema({
   type: String,
@@ -37,16 +37,15 @@ const bikeEstimationSchema = new mongoose.Schema({
 
 const bikeEstimation = mongoose.model("Bike", bikeEstimationSchema);
 
-
-
 const imageSchema = new mongoose.Schema({
-  fileName: String,
-  contentType: String,
-  data: String, // Base64 string
+  title: String,
+  image: {
+    data: String,
+    contentType: String,
+  },
 });
 
-const Image = mongoose.model('Image', imageSchema);
-
+const Image = mongoose.model("Image", imageSchema);
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -186,43 +185,45 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post('/upload', upload.single('file'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded.');
-  }
-
-  // Convert the file to Base64
-  const base64File = req.file.buffer.toString('base64');
-
-  // Create a new Image document
-  const newImage = new Image({
-    fileName: req.file.originalname,
-    contentType: req.file.mimetype,
-    data: base64File,
-  });
-
+router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    // Save the image to the database
-    await newImage.save();
-    res.status(200).json({
-      message: 'File uploaded and saved to database successfully.',
-      imageId: newImage._id, // Return the image ID
+    const base64File = req.file.buffer.toString("base64");
+    // const binaryImage = base64File.toString();
+
+    const newImage = new Image({
+      title: req.body.title,
+      image: {
+        data: base64File,
+        contentType: req.file.mimetype,
+      },
     });
+
+    await newImage.save();
+    res.status(200).json({ message: "Image and title uploaded successfully." });
   } catch (error) {
-    res.status(500).json({ message: 'Error saving image to database.', error });
+    console.error("Error saving image:", error);
+    res.status(500).json({ message: "Error saving image to database." });
   }
 });
 
-
-router.post('/images', async (req, res) => {
+router.post("/images", async (req, res) => {
   try {
-    const image = await Image.find();
+    const image = await Image.find().sort({ createdAt: -1 });
     if (!image) {
-      return res.status(404).send('Image not found.');
+      return res.status(404).send("Image not found.");
     }
-    res.status(200).json(image[0]);
+    const length = image?.length || 1;
+
+    if (length > 0) {
+      const getImage = image[length - 1];
+      const base64Image = getImage.image.data.toString("base64");
+      res.send({
+        title: getImage.title,
+        image: `${base64Image}`,
+      });
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving image.', error });
+    res.status(500).json({ message: "Error retrieving image.", error });
   }
 });
 
