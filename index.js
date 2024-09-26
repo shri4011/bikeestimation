@@ -7,14 +7,14 @@ require("dotenv").config();
 // Create an Express app
 const app = express();
 const corsOptions = {
-    origin: 'http://localhost:3000', // Allow your frontend's origin
+    origin: 'https://bike-estimation.netlify.app', // Allow your frontend's origin
     methods: ['GET', 'POST'], // Allowed methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
     credentials: true, // If you need to allow cookies/authentication
   };
   
-  // app.use(cors(corsOptions));
-  app.use(cors());
+  app.use(cors(corsOptions));
+  // app.use(cors());
 
 // Middleware to parse JSON
 app.use(express.json());
