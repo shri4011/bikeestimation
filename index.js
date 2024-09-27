@@ -3,18 +3,20 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
+const path = require("path");
 
 // Create an Express app
+//https://bike-estimation.netlify.app
 const app = express();
 const corsOptions = {
-    origin: 'https://bike-estimation.netlify.app', // Allow your frontend's origin
-    methods: ['GET', 'POST'], // Allowed methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-    credentials: true, // If you need to allow cookies/authentication
-  };
-  
-  app.use(cors(corsOptions));
-  // app.use(cors());
+  origin: "https://bike-estimation.netlify.app", // Allow your frontend's origin
+  methods: ["GET", "POST"], // Allowed methods
+  allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+  credentials: true, // If you need to allow cookies/authentication
+};
+
+app.use(cors(corsOptions));
+// app.use(cors());
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -28,7 +30,8 @@ mongoose
   })
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Could not connect to MongoDB...", err));
-
+app.use("/public", express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public")));
 const bikeRoutes = require("./routes/estimations");
 
 app.use("/api/bikesEstimation", bikeRoutes);

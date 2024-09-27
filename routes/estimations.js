@@ -4,6 +4,10 @@ const mongoose = require("mongoose");
 const router = express.Router();
 const multer = require("multer");
 const bodyParser = require("body-parser");
+const { jsPDF } = require("jspdf");
+const fs = require("fs");
+const path = require("path");
+require("jspdf-autotable");
 
 const partsList = new mongoose.Schema({
   type: String,
@@ -33,6 +37,7 @@ const bikeEstimationSchema = new mongoose.Schema({
   partsList: [partsList],
   billSubtotal: Number,
   payableAmount: Number,
+  pdfUrl: String,
 });
 
 const bikeEstimation = mongoose.model("Bike", bikeEstimationSchema);
@@ -52,6 +57,121 @@ const upload = multer({ storage });
 // POST a new estimation
 router.post("/", async (req, res) => {
   try {
+    const doc = new jsPDF();
+
+    const vehicleDetails = {
+      vehicalNumber: req?.body?.vehicalNumber || "NA",
+      ownerName: req?.body?.ownerName || "NA",
+      mobileNumber: req?.body?.mobileNumber || "NA",
+      vehicalType: req?.body?.vehicalType || "NA",
+      vehicalComapny: req?.body?.vehicalComapny || "NA",
+      vehicalModel: req?.body?.vehicalModel || "NA",
+    };
+
+    const image = await Image.find()?.sort({ createdAt: -1 });
+    if (!image) {
+      return res.status(404).send("Image not found.");
+    }
+    const length = image?.length || 1;
+
+    let getImage = "";
+    let base64Image = "";
+    let title = "default title";
+    if (length > 0) {
+      getImage = image[length - 1];
+      title = getImage?.title;
+      base64Image = getImage?.image?.data?.toString("base64");
+    }
+
+    doc.addImage(base64Image, "PNG", 171, 10, 25, 24);
+
+    // Add a title
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+
+    // Add Vehicle Details
+    doc.setFontSize(14);
+    doc.text("Vehicle Details", 14, 30);
+    doc.autoTable({
+      startY: 35,
+      head: [
+        [
+          "Vehicle Number",
+          "Owner Name",
+          "Mobile Number",
+          "Vehicle Type",
+          "Vehicle Company",
+          "Vehicle Model",
+        ],
+      ],
+      body: [
+        [
+          vehicleDetails.vehicalNumber,
+          vehicleDetails.ownerName,
+          vehicleDetails.mobileNumber,
+          vehicleDetails.vehicalType,
+          vehicleDetails.vehicalComapny,
+          vehicleDetails.vehicalModel,
+        ],
+      ],
+    });
+
+    // Add a Parts List Table
+    doc.text("Parts List", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [["Type", "Company", "Product", "Price", "Quantity", "Total"]],
+      body: req?.body?.partsList.map((part) => [
+        part.type,
+        part.company,
+        part.product,
+        part.price,
+        part.quantity,
+        part.total,
+      ]),
+    });
+
+    // Add a Servicing List Table
+    doc.text("Servicing List", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [["Service Type", "Service Option", "Price", "Quantity", "Total"]],
+      body: req?.body?.servicingList.map((service) => [
+        service.serviceType,
+        service.serviceOption,
+        service.price,
+        service.quantity,
+        service.total,
+      ]),
+    });
+
+    doc.text("Amount Details", 14, doc.lastAutoTable.finalY + 10);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 15,
+      head: [["Bill sub total", "Payable amount"]],
+      body: [[req?.body?.billSubtotal, req?.body?.payableAmount]],
+    });
+
+    // Save the PDF to the server
+    const pdfFilePath = path.join(
+      __dirname,
+      "..",
+      "public",
+      `${req?.body?.vehicalNumber}.pdf`
+    );
+    // fs.writeFileSync(pdfFilePath,); // Save the generated PDF
+
+    await fs.writeFile(pdfFilePath, doc.output(), "binary", (err) => {
+      if (err) {
+        console.error("Error writing PDF to file:", err);
+        throw err;
+      } else {
+        console.log(`PDF saved successfully at ${pdfFilePath}`);
+      }
+    });
+
+    const pdfUrl = `https://bikeestimation-2.onrender.com/public/${req?.body?.vehicalNumber}.pdf`;
+
     const bikeEst = new bikeEstimation({
       vehicalNumber: req.body.vehicalNumber,
       ownerName: req.body.ownerName,
@@ -63,6 +183,7 @@ router.post("/", async (req, res) => {
       partsList: req.body.partsList,
       billSubtotal: req.body.billSubtotal,
       payableAmount: req.body.payableAmount,
+      pdfUrl: pdfUrl,
     });
 
     await bikeEst.save();
