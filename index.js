@@ -7,9 +7,11 @@ const path = require("path");
 
 // Create an Express app
 //https://bike-estimation.netlify.app
+const isProd = process.env.IS_PROD;
+const CORS_API_URL = isProd === "true" ? "https://bike-estimation.netlify.app" : "http://localhost:3000";
 const app = express();
 const corsOptions = {
-  origin: "https://bike-estimation.netlify.app", // Allow your frontend's origin
+  origin: CORS_API_URL, // Allow your frontend's origin
   methods: ["GET", "POST"], // Allowed methods
   allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
   credentials: true, // If you need to allow cookies/authentication
@@ -33,6 +35,7 @@ mongoose
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "public")));
 const bikeRoutes = require("./routes/estimations");
+const { env } = require("process");
 
 app.use("/api/bikesEstimation", bikeRoutes);
 
